@@ -41,7 +41,14 @@ class Player(Block):
 		"""
 			Metoda constrain zajišťuje, že nebude možné odejít z hracího pole.
 		"""
-		pass
+		if self.rect.top <= 760:
+			self.rect.top = 760
+		if self.rect.bottom >= screen_height:
+			self.rect.bottom = screen_height
+		if self.rect.left <= 0:
+			self.rect.left = 0
+		if self.rect.right >= screen_width:
+			self.rect.right = screen_width 
 
 	def update(self, ball_group):
 		"""
@@ -131,7 +138,10 @@ class Manager():
 		"""
 			Vykresluje a updatuje objekty.
 		"""	
-		pass
+	
+		self.characters.draw(screen)
+		
+		self.characters.update(None)
 
 	def draw_score(self):
 		"""
@@ -161,7 +171,25 @@ screen_height = 960
 screen = pygame.display.set_mode((screen_width,screen_height))
 pygame.display.set_caption('Přestřelka')
 
+"""
 
+"""
+bg_river = pygame.image.load('assets/river_bg.png')
+bg_grass = pygame.image.load('assets/grass_bg.png')
+
+middle = pygame.Rect(0, 200, screen_width, 560)
+top_side = pygame.Rect(0, 0, screen_width, 200)
+bot_side = pygame.Rect(0, 760, screen_width, 200)
+
+"""
+
+"""
+player = Player('player_char.png', screen_width/2, screen_height, 4)
+characters = pygame.sprite.Group()
+characters.add(player)
+
+
+game_manager = Manager(characters, None)
 """
 	Hlavní loop, díky kterému hra poběží.
 """
@@ -172,8 +200,10 @@ while True:
 		if event.type == pygame.QUIT:
 			pygame.quit()
 			sys.exit()
+	
 
-		
+	# Run the game
+	game_manager.run_game()
 
 	# Obnovování okna, aby bylo možné pozorovat pohyb
 	pygame.display.flip()
