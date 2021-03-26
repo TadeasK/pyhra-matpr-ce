@@ -36,7 +36,8 @@ class Player(Block):
 		"""
 		super().__init__(path, pos_x, pos_y)
 		self.speed = speed
-		self.movement = 0
+		self.movement_x = 0
+		self.movement_y = 0
 
 	def constrain(self):
 		"""
@@ -55,7 +56,8 @@ class Player(Block):
 		"""
 			Metoda, která zajistí vykreslování pohybu hráče.
 		"""
-		self.rect.y += self.movement
+		self.rect.x += self.movement_x
+		self.rect.y += self.movement_y
 		self.constrain()
 
 	def shoot(self):
@@ -164,6 +166,7 @@ class Manager():
 	Základní inicializace a funkčnost hry.
 """
 pygame.init()
+pygame.font.init()
 clock = pygame.time.Clock()
 
 
@@ -180,7 +183,7 @@ pygame.display.set_caption('Přestřelka')
 """
 bg_river = pygame.transform.scale(pygame.image.load(os.path.join('assets', 'river_bg.png')), (screen_width, 500))
 bg_grass = pygame.transform.scale(pygame.image.load(os.path.join('assets', 'grass_bg.png')), (screen_width, 230))
-
+game_font = pygame.font.SysFont("Campus", 50)
 """
 
 """
@@ -205,14 +208,23 @@ while True:
 		
 		if event.type == pygame.KEYDOWN:
 			if event.key == pygame.K_UP:
-				player.movement -= player.speed
+				player.movement_y -= player.speed
 			if event.key == pygame.K_DOWN:
-				player.movement += player.speed
+				player.movement_y += player.speed
+			if event.key == pygame.K_LEFT:
+				player.movement_x -= player.speed
+			if event.key == pygame.K_RIGHT:
+				player.movement_x += player.speed
 		if event.type == pygame.KEYUP:
 			if event.key == pygame.K_UP:
-				player.movement += player.speed
+				player.movement_y += player.speed
 			if event.key == pygame.K_DOWN:
-				player.movement -= player.speed
+				player.movement_y -= player.speed
+			if event.key == pygame.K_LEFT:
+				player.movement_x += player.speed
+			if event.key == pygame.K_RIGHT:
+				player.movement_x -= player.speed
+
 
 	# Run the game
 	game_manager.run_game()
