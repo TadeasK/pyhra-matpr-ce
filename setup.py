@@ -1,5 +1,6 @@
 import pygame
 import sys
+import os
 
 
 """
@@ -19,7 +20,7 @@ class Block(pygame.sprite.Sprite):
 			Využívám vestavěnou funkci super(), která usnadňuje víceúrovňovou dědičnost.
 		"""
 		super().__init__()
-		self.image = pygame.image.load(path)
+		self.image = pygame.image.load(os.path.join('assets', path))
 		self.rect = self.image.get_rect(center = (pos_x, pos_y))
 
 	
@@ -41,8 +42,8 @@ class Player(Block):
 		"""
 			Metoda constrain zajišťuje, že nebude možné odejít z hracího pole.
 		"""
-		if self.rect.top <= 760:
-			self.rect.top = 760
+		if self.rect.top <= 730:
+			self.rect.top = 730
 		if self.rect.bottom >= screen_height:
 			self.rect.bottom = screen_height
 		if self.rect.left <= 0:
@@ -54,7 +55,8 @@ class Player(Block):
 		"""
 			Metoda, která zajistí vykreslování pohybu hráče.
 		"""
-		pass
+		self.rect.y += self.movement
+		self.constrain()
 
 	def shoot(self):
 		"""
@@ -138,7 +140,9 @@ class Manager():
 		"""
 			Vykresluje a updatuje objekty.
 		"""	
-	
+		screen.blit(bg_river, (0, 230))
+		screen.blit(bg_grass, (0, 0))
+		screen.blit(bg_grass, (0, 730))
 		self.characters.draw(screen)
 		
 		self.characters.update(None)
@@ -174,19 +178,17 @@ pygame.display.set_caption('Přestřelka')
 """
 
 """
-bg_river = pygame.image.load('assets/river_bg.png')
-bg_grass = pygame.image.load('assets/grass_bg.png')
-
-middle = pygame.Rect(0, 200, screen_width, 560)
-top_side = pygame.Rect(0, 0, screen_width, 200)
-bot_side = pygame.Rect(0, 760, screen_width, 200)
+bg_river = pygame.transform.scale(pygame.image.load(os.path.join('assets', 'river_bg.png')), (screen_width, 500))
+bg_grass = pygame.transform.scale(pygame.image.load(os.path.join('assets', 'grass_bg.png')), (screen_width, 230))
 
 """
 
 """
-player = Player('player_char.png', screen_width/2, screen_height, 4)
+player = Player('player_char.png', screen_width/2 - 32, screen_height - 32, 4)
+opponent = Opponent('enemy_char.png', (screen_width/2) - 32, 32, 4)
 characters = pygame.sprite.Group()
 characters.add(player)
+characters.add(opponent)
 
 
 game_manager = Manager(characters, None)
@@ -200,7 +202,17 @@ while True:
 		if event.type == pygame.QUIT:
 			pygame.quit()
 			sys.exit()
-	
+		
+		if event.type == pygame.KEYDOWN:
+			if event.key == pygame.K_UP:
+				player.movement -= player.speed
+			if event.key == pygame.K_DOWN:
+				player.movement += player.speed
+		if event.type == pygame.KEYUP:
+			if event.key == pygame.K_UP:
+				player.movement += player.speed
+			if event.key == pygame.K_DOWN:
+				player.movement -= player.speed
 
 	# Run the game
 	game_manager.run_game()
