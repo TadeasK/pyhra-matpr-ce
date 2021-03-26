@@ -29,7 +29,7 @@ class Player(Character):
 	Třída Player založená na tříde Character.
 	Ve hře bude zastávat funkce hráčova charakteru.
 	"""
-	CD = 180
+	CD = 30
 	def __init__(self, path, pos_x, pos_y, speed):
 		"""
 			Díky funkci super() dědí vlastnosti path a pos_x, y z třídy Character.
@@ -113,8 +113,6 @@ class Bullet(Character):
 		return obj1.mask.overlap(obj2.mask, (offset_x, offset_y )) != None
 
 
-
-
 """
 	Třída Opponent založená na třídě Character.
 	Bude zastávat funkčnost oponenta hráče.
@@ -124,7 +122,7 @@ class Opponent(Character):
 		Díky funkci super() dědí vlastnosti path a pos_x, y z třídy Character
 		Dále dostává vlastnost speed, která bude určovat rychlost pohybu.
 	"""
-	CD = 90
+	CD = 30
 	def __init__(self,path,x_pos,y_pos,speed):
 		super().__init__(path,x_pos,y_pos)
 		self.speed = speed
@@ -285,6 +283,7 @@ while True:
 				player.movement_x += player.speed
 			if event.key == pygame.K_SPACE:
 				player_bullets.add(player.shoot())
+				player.cooldown_time = 1
 		if event.type == pygame.KEYUP:
 			if event.key == pygame.K_UP:
 				player.movement_y += player.speed
@@ -302,4 +301,3 @@ while True:
 	# Obnovování okna, aby bylo možné pozorovat pohyb
 	pygame.display.flip()
 	clock.tick(60)
-
