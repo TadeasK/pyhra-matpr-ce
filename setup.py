@@ -85,7 +85,7 @@ class Player(Character):
             hits = pygame.sprite.spritecollide(self, enemy_bullets, False)
             if pygame.sprite.collide_mask(self, hits[0]):
                 enemy_bullets.remove(self, hits)
-                # Game over - lost
+                game_manager.lose_screen()
 
 
 class Bullet(Character):
@@ -153,19 +153,11 @@ class Opponent(Character):
                             self.dodge("right")
                         else:
                             self.dodge("left")
-                else: 
-                    if self.rect.centerx <= player.rect.centerx:
-                        self.dodge("right")
                     else:
-                        self.dodge("left")     
+                        self.dodge_player()      
         else:
-            if self.rect.centerx < player.rect.centerx:
-                self.dodge("right")
-            elif self.rect.centerx > player.rect.centerx:
-                self.dodge("left")
-            else:
-                pass
-			
+            self.dodge_player()
+            
         self.constrain()
         self.is_hit(player_bullets)
         self.cooldown()
@@ -214,6 +206,13 @@ class Opponent(Character):
             self.rect.left = 0
         if self.rect.right >= screen_width:
             self.rect.right = screen_width
+
+    def dodge_player(self):
+        if not self.rect.centerx in range(player.rect.centerx - 5, player.rect.centerx + 6):
+            if self.rect.centerx < player.rect.centerx - 5:
+                self.dodge("right")
+            elif self.rect.centerx > player.rect.centerx + 5:
+                self.dodge("left")
 
     def dodge(self, direction):
         if direction == "left":
@@ -274,7 +273,7 @@ class Manager():
                     score_render.get_width() - 30, 30))
         
         if final_score >= 50000:
-            pass
+            self.win_screen()
 
 
     def draw_time(self, elapsed_time):
@@ -391,16 +390,65 @@ class Manager():
 
     def win_screen(self):
         """
-        Win screen se ukáže pokud hráš vyhraje level.
+        Win screen se ukáže pokud hráč vyhraje level.
         Může se z ní vrátit do main menu a pokračovat dalším levelem.
         """
-        pass
+        run = True
+        while run:
+            win_caption = menu_font.render("You have won!", 1, menu_color)
+            level_caption = font.render("To continue with the next level press Enter.", 1, menu_color)
+            menu_caption = font.render("To go back to the main menu press P ...", 1, menu_color)
+
+            # Zpracování uživatelských vstupů
+            for event in pygame.event.get():
+                # Umožňuje vypnutí hry
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                # Převádí uživatelský vstup na akce v menu    
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        # next level
+                        self.main_loop()
+                    if event.key == pygame.K_p:
+                        self.main_menu()
+                        
+            screen.blit(bg_river_menu, (0, 230))
+            screen.blit(bg_grass_menu, (0, 0))
+            screen.blit(bg_grass_menu, (0, 730))
+            screen.blit(win_caption, (screen_width/2 - win_caption.get_width()/2, 250))
+            screen.blit(level_caption, (screen_width/2 - level_caption.get_width()/2, screen_height/2))
+            screen.blit(menu_caption, (screen_width/2 - menu_caption.get_width()/2, screen_height - 220))
+            pygame.display.flip()
 
     def lose_screen(self):
         """
-        Lose screen seukáže, pokud nepřítel zasáhne hráče.
+        Lose screen se ukáže, pokud nepřítel zasáhne hráče.
         """
-        pass
+        run = True
+        while run:
+            lose_caption = menu_font.render("You have been killed ...", 1, menu_color)
+            menu_caption = font.render("To go back to the main menu press P ...", 1, menu_color)
+
+            # Zpracování uživatelských vstupů
+            for event in pygame.event.get():
+                # Umožňuje vypnutí hry
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                # Převádí uživatelský vstup na akce v menu    
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_p:
+                        self.main_menu()
+                        
+            screen.blit(bg_river_menu, (0, 230))
+            screen.blit(bg_grass_menu, (0, 0))
+            screen.blit(bg_grass_menu, (0, 730))
+            screen.blit(lose_caption, (screen_width/2 - lose_caption.get_width()/2, 250))
+            screen.blit(menu_caption, (screen_width/2 - menu_caption.get_width()/2, screen_height - 220))
+            pygame.display.flip()
 
     def main_loop(self):
         elapsed_time = 0
