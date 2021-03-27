@@ -2,8 +2,6 @@ import pygame
 import sys
 import os
 import time
-global elapsed_time
-
 
 class Character(pygame.sprite.Sprite):
     """
@@ -25,6 +23,8 @@ class Character(pygame.sprite.Sprite):
         super().__init__()
         self.image = pygame.image.load(os.path.join('assets', path))
         self.rect = self.image.get_rect(center=(pos_x, pos_y))
+        # Vytvoření masky je důležité pro pozdější využití
+        # v pixel-perfect kolizích
         self.mask = pygame.mask.from_surface(self.image)
 
 
@@ -33,7 +33,6 @@ class Player(Character):
     Třída Player založená na tříde Character.
     Ve hře bude zastávat funkce hráčova charakteru.
     """
-    CD = 30
 
     def __init__(self, path, pos_x, pos_y, speed):
         """
@@ -44,25 +43,17 @@ class Player(Character):
         self.speed = speed
         self.movement_x = 0
         self.movement_y = 0
-        self.cooldown_time = 0
-
-    def cooldown(self):
-        if self.cooldown_time >= self.CD:
-            self.cooldown_time = 0
-        elif self.cooldown_time > 0:
-            self.cooldown_time += 1
 
     def shoot(self):
         """
         Metoda shoot bude vytvářet projektily.
         """
-        if self.cooldown_time <= 0:
-            self.cooldown_time = 0
-            return Bullet('player_bullet.png', self.rect.centerx, self.rect.centery, characters)
+        return Bullet('player_bullet.png', self.rect.centerx, self.rect.centery, characters)
 
     def constrain(self):
         """
-        Metoda constrain zajišťuje, že nebude možné odejít z hracího pole.
+        Metoda constrain zajišťuje, že nebude možné odejít z hracího pole nebo 
+        vykročit mimo svou vymezenou plochu (projít řekou).
         """
         if self.rect.top <= 730:
             self.rect.top = 730
@@ -80,45 +71,53 @@ class Player(Character):
         self.rect.x += self.movement_x
         self.rect.y += self.movement_y
         self.constrain()
+        self.is_hit(enemy_bullets)
 
-    def enemy_kill():
-        pass
+    def is_hit(self, enemy_bullets):
+        """
+        Metoda is_hit kontroluje kolize hráče a nepřátelských projektilů.
+        Využívá jednoduchou pygame builtin metodu sprite.spritecollide,
+        která vrací seznam objektů, jejihž rect se střetli s rect hráče.
+        Poté z tohoto listu vybere ty, u kterých vskutku došlo ke kolizi,
+        na úrovni pixelů, pomocí metody collide_mask.
+        """
+        if pygame.sprite.spritecollide(self, enemy_bullets, False):
+            hits = pygame.sprite.spritecollide(self, enemy_bullets, False)
+            if pygame.sprite.collide_mask(self, hits[0]):
+                enemy_bullets.remove(self, hits)
+                # Game over - lost
 
 
 class Bullet(Character):
-
-
     """
     Třída Bullet ve hře zastává funkčnost projektilů,
     které po sobě hráč a počítač střílí.
     """
 
-    def __init__(self, path, pos_x, posy, characters):
-       	"""
-    	Díky funkci super() dědí vlastnosti path a pos_x, y z třídy Character
-    	Dále dostává vlastnost speed, která bude určovat rychlost pohybu
-    	a characters, která nám poslouží kvůli kolizím s hráčovým a počítačovým
-    	charakterem.
-    	"""
+    def __init__(self, path, pos_x, pos_y, characters):
+        """
+        Díky funkci super() dědí vlastnosti path a pos_x, y z třídy Character
+        Dále dostává vlastnost characters, která nám poslouží kvůli kolizím 
+        s hráčovým a počítačovým charakterem.
+        """
         super().__init__(path, pos_x, pos_y)
         self.characters = characters
 
     def update(self, speed):
         """
-        Metoda, která posouvá projektil..
+        Metoda, která posouvá projektil.
         """
         self.rect.y += speed
+        self.constrain()
 
-    def collision(self, characters):
+    def constrain(self):
         """
-        Metoda, která bude hlídat, zda projektil nezasáhl nějaký z charakterů.
+        Metoda constrain smaže kulku, když opustí hrací pole (obrazovku),
+        aby nedocházelo ke zpomalování hry v důsledku nekonečného množství
+        kulek vykreslovaných mimo obraz.
         """
-        return self.collide(characters, self)
-
-    def collide(self, obj1, obj2):
-        offset_x = obj2.x - obj1.x
-        offset_y = obj2.y - obj1.y
-        return obj1.mask.overlap(obj2.mask, (offset_x, offset_y)) != None
+        if self.rect.top < -10 or self.rect.bottom > screen_height + 10:
+            self.kill()
 
 
 class Opponent(Character):
@@ -129,26 +128,53 @@ class Opponent(Character):
     CD = 30
 
     def __init__(self, path, x_pos, y_pos, speed):
-    """
-    Díky funkci super() dědí vlastnosti path a pos_x, y z třídy Character
-    Dále dostává vlastnost speed, která bude určovat rychlost pohybu.
-    """
-    super().__init__(path, x_pos, y_pos)
-    self.speed = speed
-    self.cooldown_time = 0
+        """
+        Díky funkci super() dědí vlastnosti path a pos_x, y z třídy Character
+        Dále dostává vlastnost speed, která bude určovat rychlost pohybu.
+        """
+        super().__init__(path, x_pos, y_pos)
+        self.speed = speed
+        self.cooldown_time = 0
 
     def update(self):
         """
-        Metoda zajišťující pohyb oponenta.
+        Metoda zajišťující pohyb a střelbu oponenta.
         """
         if self.cooldown_time == 0:
             if self.rect.centerx == player.rect.centerx or abs(self.rect.centerx - player.rect.centerx) <= 64:
                 enemy_bullets.add(opponent.shoot())
-                self.cooldown_time = 1
-
+                self.cooldown_time = 1        
+        
+        if bool(player_bullets):
+            for bullet in player_bullets:
+                if (bullet.rect.centerx - self.rect.centerx)**2 + (bullet.rect.centery - self.rect.centery)**2 <= 50000:
+                    if bullet.rect.y > self.rect.centery:
+                        if self.rect.centerx <= screen_width/2:
+                            self.dodge("right")
+                        else:
+                            self.dodge("left")
+                else: 
+                    if self.rect.centerx <= player.rect.centerx:
+                        self.dodge("right")
+                    else:
+                        self.dodge("left")     
+        else:
+            if self.rect.centerx < player.rect.centerx:
+                self.dodge("right")
+            elif self.rect.centerx > player.rect.centerx:
+                self.dodge("left")
+            else:
+                pass
+			
         self.constrain()
+        self.is_hit(player_bullets)
+        self.cooldown()
 
     def cooldown(self):
+        """
+        Metoda, která časově omezuje oponentovu střelbu, 
+        jinak by mohl střílet nepřetržitě.
+        """
         if self.cooldown_time >= self.CD:
             self.cooldown_time = 0
         elif self.cooldown_time > 0:
@@ -156,11 +182,25 @@ class Opponent(Character):
 
     def shoot(self):
         """
-        Metoda shoot bude vytvářet projektily.
+        Metoda shoot vytvoří projektily, pokud
+        metoda cooldown odpočte stanovený čas.
         """
-        if self.cooldown_time == 0:
-            return Bullet('enemy_bullet.png', self.rect.centerx, self.rect.centery, characters)
-            self.cooldown_time = 1
+        return Bullet('enemy_bullet.png', self.rect.centerx, self.rect.centery, characters) 
+
+    def is_hit(self, enemy_bullets):
+        """
+        Metoda is_hit kontroluje kolize hráče a nepřátelských projektilů.
+        Využívá jednoduchou pygame builtin metodu sprite.spritecollide,
+        která vrací seznam objektů, jejihž rect se střetli s rect hráče.
+        Poté z tohoto listu vybere ty, u kterých vskutku došlo ke kolizi,
+        na úrovni pixelů, pomocí metody collide_mask.
+        Nakonec také přičte hráči skóre.
+        """
+        if pygame.sprite.spritecollide(self, player_bullets, False):
+            hits = pygame.sprite.spritecollide(self, player_bullets, False)
+            if pygame.sprite.collide_mask(self, hits[0]):
+                player_bullets.remove(self, hits)
+                game_manager.score += 1000
 
     def constrain(self):
         """
@@ -175,63 +215,239 @@ class Opponent(Character):
         if self.rect.right >= screen_width:
             self.rect.right = screen_width
 
+    def dodge(self, direction):
+        if direction == "left":
+            self.rect.centerx -= self.speed
+        if direction == "right":
+            self.rect.centerx += self.speed
 
 class Manager():
+    score = 0
+    running = True
     """
-	Třída Manager dá všechno dohromady a postará se o fungování hry jako celku.
-	"""
+    Třída Manager dává všechno dohromady a stará se o fungování hry jako celku.
+    """
     def __init__(self, characters, player_bullets, enemy_bullets):
-		"""
-    	Bere si skupinu spritů, ve které jsou charaktery a kulky, jako argumenty.
-    	"""
+        """
+        Bere si skupinu spritů, ve které jsou charaktery a kulky, jako argumenty.
+        """
         self.characters = characters
         self.player_bullets = player_bullets
         self.enemy_bullets = enemy_bullets
 
-    def run_game(self):
+    def run_game(self, elapsed_time):
         """
         Vykresluje a updatuje objekty.
+        Pro správné vykreslování je důležité pořadí,
+        ve kterém objekty voláme.
         """
+        # Kreslení pozadí
         screen.blit(bg_river, (0, 230))
         screen.blit(bg_grass, (0, 0))
         screen.blit(bg_grass, (0, 730))
+
+        # Kreslení skupin objektů hráče, oponenta a kulek
         self.player_bullets.draw(screen)
         self.enemy_bullets.draw(screen)
         self.characters.draw(screen)
 
+        # Volání funkce update ve skupinách objektů
         self.player_bullets.update(-8)
         self.enemy_bullets.update(+8)
         self.characters.update()
 
-        player.cooldown()
-        opponent.cooldown()
+        # Vykresluje na obrazovku čas a skóre
+        self.draw_score(elapsed_time)
+        self.draw_time(elapsed_time)
 
-        self.draw_score()
-        self.draw_time()
-
-    def draw_score(self):
+    def draw_score(self, elapsed_time):
         """
-        Metoda, která bude počítat skóre od začátku kola.
-        Skóre bude stoupat lineárně, za každé zabití oponenta.
+        Metoda, která bude počítat a vykreslovat skóre od začátku kola.
+        Skóre bude stoupat lineárně a navíc za každé zabití oponenta.
         """
-        score = 0
-        score += elapsed_time * 100
-        if player.enemy_kill is True:
-            score += 1000
+        final_score = (elapsed_time * 100) + self.score
 
-        score_render = font.render(f"Score: {score:11.0f}", 1, font_color)
+        score_render = font.render(
+            f"Score: {final_score: 1.0f}", 1, font_color)
 
         screen.blit(score_render, (screen_width -
                     score_render.get_width() - 30, 30))
+        
+        if final_score >= 50000:
+            pass
 
-    def draw_time(self):
+
+    def draw_time(self, elapsed_time):
         """
         Metoda, která bude počítat čas od začátku kola.
         """
-        time_render = font.render(f"Time: {elapsed_time:9.4f}", 1, font_color)
+        time_render = font.render(f"Time: {elapsed_time:9.2f}", 1, font_color)
 
         screen.blit(time_render, (30, 30))
 
+    def main_menu(self):
+        """
+        Metoda main_menu spouští herní menu.
+        Je z něj možné zobrazit ovládání či zapnout hru.
+        """
+        run = True
+        while run:
+            menu_caption = menu_font.render("Main Menu", 1, menu_color)
+            run_caption = font.render("To start the game press Enter ...", 1, menu_color)
+            controls_caption = font.render("To see the controls press C ...", 1, menu_color)
+
+            # Zpracování uživatelských vstupů
+            for event in pygame.event.get():
+                # Umožňuje vypnutí hry
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                # Převádí uživatelský vstup na akce v menu    
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        self.running = True
+                        self.main_loop()
+                    if event.key == pygame.K_c:
+                        self.controls()
+                    
+
+            screen.blit(bg_river_menu, (0, 230))
+            screen.blit(bg_grass_menu, (0, 0))
+            screen.blit(bg_grass_menu, (0, 730))
+            screen.blit(menu_caption, (screen_width/2 - menu_caption.get_width()/2, 250))
+            screen.blit(run_caption, (screen_width/2 - run_caption.get_width()/2, screen_height/2))
+            screen.blit(controls_caption, (screen_width/2 - controls_caption.get_width()/2, screen_height - 220))
+            pygame.display.flip()
+    
+    def controls(self):
+        """
+        Metoda controls zobrazuje ovládání.
+        Dá se z ní dostat zpět do main menu.
+        """
+        run = True
+        while run:
+            controls_caption = menu_font.render("Controls", 1, menu_color)
+            menu_caption = font.render("To go back to the main menu press P ...", 1, menu_color)
+            movement_caption = font.render("To move your character use the arrow keys.", 1, menu_color)
+            shoot_caption = font.render("To shoot at the enemy use your spacebar.", 1, menu_color)
+
+            # Zpracování uživatelských vstupů
+            for event in pygame.event.get():
+                # Umožňuje vypnutí hry
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                # Převádí uživatelský vstup na akce v menu    
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_p:
+                        self.main_menu()
+                        run = False
+
+            screen.blit(bg_river_menu, (0, 230))
+            screen.blit(bg_grass_menu, (0, 0))
+            screen.blit(bg_grass_menu, (0, 730))
+            screen.blit(controls_caption, (screen_width/2 - controls_caption.get_width()/2, 250))
+            screen.blit(menu_caption, (screen_width/2 - menu_caption.get_width()/2, screen_height - 220))
+            screen.blit(movement_caption, (screen_width/2 - movement_caption.get_width()/2, 470))
+            screen.blit(shoot_caption, (screen_width/2 - shoot_caption.get_width()/2, 570))
+            pygame.display.flip()
+
+    def pause_menu(self):
+        """
+        Metoda pause menu se ukáže když hráč pozastaví hru.
+        Může pokračovat zpět do hry nebo do main menu, čímž hru resetne.
+        """
+        run = True
+        while run:
+            pause_caption = menu_font.render("Game Paused", 1, menu_color)
+            run_caption = font.render("To continue the game press Enter ...", 1, menu_color)
+            reset_caption = font.render("To go to the main menu and reset the game press P again...", 1, menu_color)
+
+            # Zpracování uživatelských vstupů
+            for event in pygame.event.get():
+                # Umožňuje vypnutí hry
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                # Převádí uživatelský vstup na akce v menu    
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        self.main_loop()
+                    if event.key == pygame.K_p:
+                        self.running = False
+                        self.main_menu()
+                        
+            screen.blit(bg_river_menu, (0, 230))
+            screen.blit(bg_grass_menu, (0, 0))
+            screen.blit(bg_grass_menu, (0, 730))
+            screen.blit(pause_caption, (screen_width/2 - pause_caption.get_width()/2, 250))
+            screen.blit(run_caption, (screen_width/2 - run_caption.get_width()/2, screen_height/2))
+            screen.blit(reset_caption, (screen_width/2 - reset_caption.get_width()/2, screen_height - 220))
+            pygame.display.flip()
+
+
+    def win_screen(self):
+        """
+        Win screen se ukáže pokud hráš vyhraje level.
+        Může se z ní vrátit do main menu a pokračovat dalším levelem.
+        """
+        pass
+
+    def lose_screen(self):
+        """
+        Lose screen seukáže, pokud nepřítel zasáhne hráče.
+        """
+        pass
+
+    def main_loop(self):
+        elapsed_time = 0
+        while self.running:
+            """
+            Hlavní loop, díky kterému hra poběží.
+            """
+            # Počítá čas od začátku hry
+            elapsed_time = time.time() - start_time
+
+            # Zpracování uživatelského vstupu
+            for event in pygame.event.get():
+                # Umožňuje vypnutí hry
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                # Převádí uživatelský vstup na akce ve hře
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        player.movement_y -= player.speed
+                    if event.key == pygame.K_DOWN:
+                        player.movement_y += player.speed
+                    if event.key == pygame.K_LEFT:
+                        player.movement_x -= player.speed
+                    if event.key == pygame.K_RIGHT:
+                        player.movement_x += player.speed
+                    if event.key == pygame.K_SPACE:
+                        player_bullets.add(player.shoot())
+                    if event.key == pygame.K_p:
+                        self.pause_menu()
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_UP:
+                        player.movement_y += player.speed
+                    if event.key == pygame.K_DOWN:
+                        player.movement_y -= player.speed
+                    if event.key == pygame.K_LEFT:
+                        player.movement_x += player.speed
+                    if event.key == pygame.K_RIGHT:
+                        player.movement_x -= player.speed
+
+            # Spouští procesy, díky kterým hra běží
+            game_manager.run_game(elapsed_time)
+
+            # Obnovování okna, aby bylo možné pozorovat pohyb
+            pygame.display.flip()
+            clock.tick(60)
 
 """
 Základní inicializace a funkčnost hry.
@@ -249,22 +465,30 @@ screen_height = 960
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Přestřelka')
 
+
 """
 Nastavení proměnných pozadí a fontu.
 """
-
 bg_river = pygame.transform.scale(pygame.image.load(
     os.path.join('assets', 'river_bg.png')), (screen_width, 500))
 bg_grass = pygame.transform.scale(pygame.image.load(
     os.path.join('assets', 'grass_bg.png')), (screen_width, 230))
+bg_river_menu = pygame.transform.scale(pygame.image.load(
+    os.path.join('assets', 'river_bg_menu.png')), (screen_width, 500))
+bg_grass_menu = pygame.transform.scale(pygame.image.load(
+    os.path.join('assets', 'grass_bg_menu.png')), (screen_width, 230))
+
 font = pygame.font.SysFont("Campus", 40)
+menu_font = pygame.font.SysFont("Campus", 80)
 font_color = (255, 255, 255)
+menu_color = (0, 0, 0)
 start_time = time.time()
+
 """
-Definování objektů.
+Vytvoření objektů.
 """
 player = Player('player_char.png', screen_width/2 - 32, screen_height - 32, 4)
-opponent = Opponent('enemy_char.png', (screen_width/2) - 32, 32, 4)
+opponent = Opponent('enemy_char.png', (screen_width/2) - 32, 32, 10)
 characters = pygame.sprite.Group()
 characters.add(player)
 characters.add(opponent)
@@ -273,44 +497,8 @@ player_bullets = pygame.sprite.Group()
 enemy_bullets = pygame.sprite.Group()
 
 game_manager = Manager(characters, player_bullets, enemy_bullets)
-while True:
-    """
-    Hlavní loop, díky kterému hra poběží.
-    """
-    # Zpracování uživatelského vstupu
-    for event in pygame.event.get():
-        # Umožňuje vypnutí hry
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
 
-        # Převádí uživatelský vstup na akce ve hře
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                player.movement_y -= player.speed
-            if event.key == pygame.K_DOWN:
-                player.movement_y += player.speed
-            if event.key == pygame.K_LEFT:
-                player.movement_x -= player.speed
-            if event.key == pygame.K_RIGHT:
-                player.movement_x += player.speed
-            if event.key == pygame.K_SPACE:
-                player_bullets.add(player.shoot())
-                player.cooldown_time = 1
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_UP:
-                player.movement_y += player.speed
-            if event.key == pygame.K_DOWN:
-                player.movement_y -= player.speed
-            if event.key == pygame.K_LEFT:
-                player.movement_x += player.speed
-            if event.key == pygame.K_RIGHT:
-                player.movement_x -= player.speed
 
-    elapsed_time = time.time() - start_time
-    # Run the game
-    game_manager.run_game()
-
-    # Obnovování okna, aby bylo možné pozorovat pohyb
-    pygame.display.flip()
-    clock.tick(60)
+# Volá metodu main_menu ze třídy game_manager,
+# čímž iniciuje spuštění hry.
+game_manager.main_menu()
