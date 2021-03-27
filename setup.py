@@ -3,6 +3,7 @@ import sys
 import os
 import time
 
+
 class Character(pygame.sprite.Sprite):
     """
     Vytvářím abstraktní třídu Character, založenou na třídě Sprite,
@@ -43,6 +44,13 @@ class Player(Character):
         self.speed = speed
         self.movement_x = 0
         self.movement_y = 0
+        # Proměnná a slovník pro obtížnost
+        self.difficulty = {
+            "easy": [45, 100],
+            "medium": [30, 50],
+            "hardcore": [0, 0],
+        }
+        self.diff = 0
 
     def shoot(self):
         """
@@ -125,7 +133,6 @@ class Opponent(Character):
     Třída Opponent založená na třídě Character.
     Bude zastávat funkčnost oponenta hráče.
     """
-    CD = game_manager.difficulty.get("easy")[0]
 
     def __init__(self, path, x_pos, y_pos, speed):
         """
@@ -135,6 +142,7 @@ class Opponent(Character):
         super().__init__(path, x_pos, y_pos)
         self.speed = speed
         self.cooldown_time = 0
+        self.CD = player.difficulty.get("easy")[0]
 
     def update(self):
         """
@@ -224,11 +232,6 @@ class Opponent(Character):
 class Manager():
     score = 0
     running = True
-    difficulty = {
-    "easy": [45, 100],
-    "medium": [30, 50],
-    "hardcore": [0, 0],
-    }
 
     """
     Třída Manager dává všechno dohromady a stará se o fungování hry jako celku.
@@ -243,7 +246,6 @@ class Manager():
         self.enemy_bullets = enemy_bullets
         self.start_time = time.time()
         self.elapsed_time = 0
-
 
     def run_game(self, elapsed_time):
         """
@@ -264,16 +266,24 @@ class Manager():
         self.enemy_bullets.update(+8)
         self.characters.update()
 
-        # Vykresluje na obrazovku čas a skóre
-        self.draw_score(elapsed_time)
-        self.draw_time(elapsed_time)
+        # Vykresluje na obrazovku čas, obtížnost a skóre
+        self.draw_score()
+        self.draw_time()
+        self.draw_difficulty()
 
-    def draw_score(self, elapsed_time):
+    def draw_score(self):
         """
         Metoda, která bude počítat a vykreslovat skóre od začátku kola.
         Skóre bude stoupat lineárně a navíc za každé zabití oponenta.
         """
-        final_score = (elapsed_time * (100 + self.difficulty.get("easy")[1])) + self.score
+        diffs = {
+            0: "easy",
+            1: "medium",
+            2: "hardcore"
+        }
+
+        final_score = (
+            self.elapsed_time * (100 + player.difficulty.get(diffs[player.diff])[1])) + self.score
 
         score_render = font.render(
             f"Score: {final_score: 1.0f}", 1, font_color)
@@ -281,16 +291,30 @@ class Manager():
         screen.blit(score_render, (screen_width -
                     score_render.get_width() - 30, 30))
 
-        if final_score >= 50000:
+        if final_score >= 20000:
             self.win_screen()
 
-    def draw_time(self, elapsed_time):
+    def draw_time(self):
         """
-        Metoda, která bude počítat čas od začátku kola.
+        Metoda, která bude počítat a vykreslovat čas od začátku kola.
         """
-        time_render = font.render(f"Time: {elapsed_time:9.2f}", 1, font_color)
+        time_render = font.render(f"Time: {self.elapsed_time:9.2f}", 1, font_color)
 
         screen.blit(time_render, (30, 30))
+
+    def draw_difficulty(self):
+        """
+        Metoda, která bude vykrelovat současnou obtížnost.
+        """
+        diffs = {
+            0: "easy",
+            1: "medium",
+            2: "hardcore"
+        }
+        
+        diff_render = font.render(f"Difficulty: {diffs.get(player.diff)}", 1, font_color)
+
+        screen.blit(diff_render, (screen_width - diff_render.get_width() - 30, 90))
 
     def draw_background(self):
         screen.blit(bg_river, (0, 230))
@@ -444,7 +468,17 @@ class Manager():
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
                         # next level
-                        self.main_loop()
+                        player.diff += 1
+                        if player.diff >= 3:
+                            player.diff = 0
+                        diffs = {
+                            0: "easy",
+                            1: "medium",
+                            2: "hardcore"
+                        }
+                        opponent.CD = player.difficulty[diffs[player.diff]][0]
+                        self.main_menu()
+
                     if event.key == pygame.K_p:
                         self.main_menu()
 
@@ -572,6 +606,7 @@ menu_color = (0, 0, 0)
 """
 Vytvoření objektů.
 """
+
 player = Player('player_char.png', screen_width/2 - 32, screen_height - 32, 4)
 opponent = Opponent('enemy_char.png', (screen_width/2) - 32, 32, 10)
 characters = pygame.sprite.Group()
