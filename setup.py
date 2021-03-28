@@ -22,12 +22,25 @@ class Character(pygame.sprite.Sprite):
         Využívám vestavěnou funkci super(), která usnadňuje víceúrovňovou dědičnost.
         """
         super().__init__()
+        self.pos_x = pos_x
+        self.pos_y = pos_y
         self.image = pygame.image.load(os.path.join('assets', path))
         self.rect = self.image.get_rect(center=(pos_x, pos_y))
         # Vytvoření masky je důležité pro pozdější využití
         # v pixel-perfect kolizích
         self.mask = pygame.mask.from_surface(self.image)
 
+    def reset(self):
+        """
+        Metoda reset vrátí hráče a nepřítele na startovní pozici,
+        zároveň resetne hráčův pohyb, kdyby při smrti/výhře
+        stále držel tlačítko pro pohyb.
+        """
+        self.rect.centerx = self.pos_x
+        self.rect.centery = self.pos_y
+
+        self.movement_x = 0
+        self.movement_y = 0
 
 class Player(Character):
     """
@@ -134,12 +147,12 @@ class Opponent(Character):
     Bude zastávat funkčnost oponenta hráče.
     """
 
-    def __init__(self, path, x_pos, y_pos, speed):
+    def __init__(self, path, pos_x, pos_y, speed):
         """
         Díky funkci super() dědí vlastnosti path a pos_x, y z třídy Character
         Dále dostává vlastnost speed, která bude určovat rychlost pohybu.
         """
-        super().__init__(path, x_pos, y_pos)
+        super().__init__(path, pos_x, pos_y)
         self.speed = speed
         self.cooldown_time = 0
         self.CD = player.difficulty.get("easy")[0]
@@ -227,7 +240,7 @@ class Opponent(Character):
             self.rect.centerx -= self.speed
         if direction == "right":
             self.rect.centerx += self.speed
-
+    
 
 class Manager():
     score = 0
@@ -477,7 +490,10 @@ class Manager():
                             2: "hardcore"
                         }
                         opponent.CD = player.difficulty[diffs[player.diff]][0]
+                        player.reset()
+                        opponent.reset()
                         self.main_menu()
+                        
 
                     if event.key == pygame.K_p:
                         self.main_menu()
@@ -511,6 +527,8 @@ class Manager():
                 # Převádí uživatelský vstup na akce v menu
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_p:
+                        player.reset()
+                        opponent.reset()
                         self.main_menu()
 
             self.draw_background_menus()
