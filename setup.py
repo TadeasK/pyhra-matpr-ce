@@ -304,7 +304,7 @@ class Manager():
         screen.blit(score_render, (screen_width -
                     score_render.get_width() - 30, 30))
 
-        if final_score >= 20000:
+        if final_score >= 50000:
             self.win_screen()
 
     def draw_time(self):
