@@ -382,7 +382,7 @@ class Manager:
 
     def draw_background(self):
         """
-        Dává dohromady pozadí pro snadnější vykreslování herního pozadí.
+        Dává dohromady pozadí pro snažší vykreslování herního pozadí.
         """
         screen.blit(bg_river, (0, 230))
         screen.blit(bg_grass, (0, 0))
@@ -435,7 +435,7 @@ class Manager:
                     if event.key == pygame.K_q:
                         pygame.quit()
                         sys.exit()
-            ¨
+            
             # Vykresluje obsah menu
             self.draw_background_menus()
             screen.blit(
