@@ -1,7 +1,8 @@
-import pygame
-import sys
 import os
+import sys
 import time
+
+import pygame
 
 
 class Character(pygame.sprite.Sprite):
@@ -24,7 +25,7 @@ class Character(pygame.sprite.Sprite):
         super().__init__()
         self.pos_x = pos_x
         self.pos_y = pos_y
-        self.image = pygame.image.load(os.path.join('assets', path))
+        self.image = pygame.image.load(os.path.join("assets", path))
         self.rect = self.image.get_rect(center=(pos_x, pos_y))
         # Vytvoření masky je důležité pro pozdější využití
         # v pixel-perfect kolizích
@@ -41,6 +42,7 @@ class Character(pygame.sprite.Sprite):
 
         self.movement_x = 0
         self.movement_y = 0
+
 
 class Player(Character):
     """
@@ -69,7 +71,9 @@ class Player(Character):
         """
         Metoda shoot bude vytvářet projektily.
         """
-        return Bullet('player_bullet.png', self.rect.centerx, self.rect.centery, characters)
+        return Bullet(
+            "player_bullet.png", self.rect.centerx, self.rect.centery, characters
+        )
 
     def constrain(self):
         """
@@ -162,15 +166,26 @@ class Opponent(Character):
         Metoda zajišťující pohyb a střelbu oponenta.
         """
         if self.cooldown_time == 0:
-            if self.rect.centerx == player.rect.centerx or abs(self.rect.centerx - player.rect.centerx) <= 64:
+            if (
+                self.rect.centerx == player.rect.centerx
+                or abs(self.rect.centerx - player.rect.centerx) <= 64
+            ):
                 enemy_bullets.add(opponent.shoot())
                 self.cooldown_time = 1
 
+        self.movement()
+        self.constrain()
+        self.is_hit(player_bullets)
+        self.cooldown()
+
+    def movement(self):
         if bool(player_bullets):
             for bullet in player_bullets:
-                if (bullet.rect.centerx - self.rect.centerx)**2 + (bullet.rect.centery - self.rect.centery)**2 <= 50000:
+                if (bullet.rect.centerx - self.rect.centerx) ** 2 + (
+                    bullet.rect.centery - self.rect.centery
+                ) ** 2 <= 50000:
                     if bullet.rect.y > self.rect.centery:
-                        if self.rect.centerx <= screen_width/2:
+                        if self.rect.centerx <= screen_width / 2:
                             self.dodge("right")
                         else:
                             self.dodge("left")
@@ -178,10 +193,6 @@ class Opponent(Character):
                         self.dodge_player()
         else:
             self.dodge_player()
-
-        self.constrain()
-        self.is_hit(player_bullets)
-        self.cooldown()
 
     def cooldown(self):
         """
@@ -198,7 +209,9 @@ class Opponent(Character):
         Metoda shoot vytvoří projektily, pokud
         metoda cooldown odpočte stanovený čas.
         """
-        return Bullet('enemy_bullet.png', self.rect.centerx, self.rect.centery, characters)
+        return Bullet(
+            "enemy_bullet.png", self.rect.centerx, self.rect.centery, characters
+        )
 
     def is_hit(self, enemy_bullets):
         """
@@ -229,7 +242,9 @@ class Opponent(Character):
             self.rect.right = screen_width
 
     def dodge_player(self):
-        if not self.rect.centerx in range(player.rect.centerx - 5, player.rect.centerx + 6):
+        if self.rect.centerx not in range(
+            player.rect.centerx - 5, player.rect.centerx + 6
+        ):
             if self.rect.centerx < player.rect.centerx - 5:
                 self.dodge("right")
             elif self.rect.centerx > player.rect.centerx + 5:
@@ -240,9 +255,9 @@ class Opponent(Character):
             self.rect.centerx -= self.speed
         if direction == "right":
             self.rect.centerx += self.speed
-    
 
-class Manager():
+
+class Manager:
     score = 0
     running = True
 
@@ -289,20 +304,18 @@ class Manager():
         Metoda, která bude počítat a vykreslovat skóre od začátku kola.
         Skóre bude stoupat lineárně a navíc za každé zabití oponenta.
         """
-        diffs = {
-            0: "easy",
-            1: "medium",
-            2: "hardcore"
-        }
+        diffs = {0: "easy", 1: "medium", 2: "hardcore"}
 
         final_score = (
-            self.elapsed_time * (100 + player.difficulty.get(diffs[player.diff])[1])) + self.score
+            int(
+                self.elapsed_time * (100 + player.difficulty.get(diffs[player.diff])[1])
+            )
+            + self.score
+        )
 
-        score_render = font.render(
-            f"Score: {final_score: 1.0f}", 1, font_color)
+        score_render = font.render(f"Score: {final_score}", 1, font_color)
 
-        screen.blit(score_render, (screen_width -
-                    score_render.get_width() - 30, 30))
+        screen.blit(score_render, (screen_width - score_render.get_width() - 30, 30))
 
         if final_score >= 50000:
             self.win_screen()
@@ -319,13 +332,11 @@ class Manager():
         """
         Metoda, která bude vykrelovat současnou obtížnost.
         """
-        diffs = {
-            0: "easy",
-            1: "medium",
-            2: "hardcore"
-        }
-        
-        diff_render = font.render(f"Difficulty: {diffs.get(player.diff)}", 1, font_color)
+        diffs = {0: "easy", 1: "medium", 2: "hardcore"}
+
+        diff_render = font.render(
+            f"Difficulty: {diffs.get(player.diff)}", 1, font_color
+        )
 
         screen.blit(diff_render, (screen_width - diff_render.get_width() - 30, 90))
 
@@ -344,7 +355,7 @@ class Manager():
         Metoda main_menu spouští herní menu.
         Je z něj možné zobrazit ovládání či zapnout hru.
         """
-        if not self.elapsed_time == 0:
+        if self.elapsed_time != 0:
             self.start_time = time.time()
             self.score = 0
             self.enemy_bullets.empty()
@@ -353,9 +364,11 @@ class Manager():
         while True:
             menu_caption = menu_font.render("Main Menu", 1, menu_color)
             run_caption = font.render(
-                "To start the game press Enter ...", 1, menu_color)
+                "To start the game press Enter ...", 1, menu_color
+            )
             controls_caption = font.render(
-                "To see the controls press C ...", 1, menu_color)
+                "To see the controls press C ...", 1, menu_color
+            )
 
             # Zpracování uživatelských vstupů
             for event in pygame.event.get():
@@ -371,14 +384,25 @@ class Manager():
                         self.main_loop()
                     if event.key == pygame.K_c:
                         self.controls()
+                    if event.key == pygame.K_q:
+                        pygame.quit()
+                        sys.exit()
 
             self.draw_background_menus()
-            screen.blit(menu_caption, (screen_width/2 -
-                        menu_caption.get_width()/2, 250))
-            screen.blit(run_caption, (screen_width/2 -
-                        run_caption.get_width()/2, screen_height/2))
-            screen.blit(controls_caption, (screen_width/2 -
-                        controls_caption.get_width()/2, screen_height - 220))
+            screen.blit(
+                menu_caption, (screen_width / 2 - menu_caption.get_width() / 2, 250)
+            )
+            screen.blit(
+                run_caption,
+                (screen_width / 2 - run_caption.get_width() / 2, screen_height / 2),
+            )
+            screen.blit(
+                controls_caption,
+                (
+                    screen_width / 2 - controls_caption.get_width() / 2,
+                    screen_height - 220,
+                ),
+            )
             pygame.display.flip()
 
     def controls(self):
@@ -390,12 +414,17 @@ class Manager():
         while True:
             controls_caption = menu_font.render("Controls", 1, menu_color)
             menu_caption = font.render(
-                "To go back to the main menu press P ...", 1, menu_color)
+                "To go back to the main menu press P ...", 1, menu_color
+            )
             movement_caption = font.render(
-                "To move your character use the arrow keys.", 1, menu_color)
+                "To move your character use the arrow keys.", 1, menu_color
+            )
             shoot_caption = font.render(
-                "To shoot at the enemy use your spacebar.", 1, menu_color)
-
+                "To shoot at the enemy use your spacebar.", 1, menu_color
+            )
+            quit_caption = font.render(
+                "You can end the game at any time by pressing the Q key.", 1, menu_color
+            )
             # Zpracování uživatelských vstupů
             for event in pygame.event.get():
                 # Umožňuje vypnutí hry
@@ -408,16 +437,29 @@ class Manager():
                     if event.key == pygame.K_p:
                         self.main_menu()
                         run = False
+                    if event.key == pygame.K_q:
+                        pygame.quit()
+                        sys.exit()
 
             self.draw_background_menus()
-            screen.blit(controls_caption, (screen_width/2 -
-                        controls_caption.get_width()/2, 250))
-            screen.blit(menu_caption, (screen_width/2 -
-                        menu_caption.get_width()/2, screen_height - 220))
-            screen.blit(movement_caption, (screen_width/2 -
-                        movement_caption.get_width()/2, 470))
-            screen.blit(shoot_caption, (screen_width/2 -
-                        shoot_caption.get_width()/2, 570))
+            screen.blit(
+                controls_caption,
+                (screen_width / 2 - controls_caption.get_width() / 2, 250),
+            )
+            screen.blit(
+                menu_caption,
+                (screen_width / 2 - menu_caption.get_width() / 2, screen_height - 220),
+            )
+            screen.blit(
+                movement_caption,
+                (screen_width / 2 - movement_caption.get_width() / 2, 450),
+            )
+            screen.blit(
+                shoot_caption, (screen_width / 2 - shoot_caption.get_width() / 2, 550)
+            )
+            screen.blit(
+                quit_caption, (screen_width / 2 - quit_caption.get_width() / 2, 650)
+            )
             pygame.display.flip()
 
     def pause_menu(self):
@@ -429,9 +471,13 @@ class Manager():
         while True:
             pause_caption = menu_font.render("Game Paused", 1, menu_color)
             run_caption = font.render(
-                "To continue the game press Enter ...", 1, menu_color)
+                "To continue the game press Enter ...", 1, menu_color
+            )
             reset_caption = font.render(
-                "To go to the main menu and reset the game press P again...", 1, menu_color)
+                "To go to the main menu and reset the game press P again...",
+                1,
+                menu_color,
+            )
 
             # Zpracování uživatelských vstupů
             for event in pygame.event.get():
@@ -447,14 +493,22 @@ class Manager():
                     if event.key == pygame.K_p:
                         self.running = False
                         self.main_menu()
+                    if event.key == pygame.K_q:
+                        pygame.quit()
+                        sys.exit()
 
             self.draw_background_menus()
-            screen.blit(pause_caption, (screen_width/2 -
-                        pause_caption.get_width()/2, 250))
-            screen.blit(run_caption, (screen_width/2 -
-                        run_caption.get_width()/2, screen_height/2))
-            screen.blit(reset_caption, (screen_width/2 -
-                        reset_caption.get_width()/2, screen_height - 220))
+            screen.blit(
+                pause_caption, (screen_width / 2 - pause_caption.get_width() / 2, 250)
+            )
+            screen.blit(
+                run_caption,
+                (screen_width / 2 - run_caption.get_width() / 2, screen_height / 2),
+            )
+            screen.blit(
+                reset_caption,
+                (screen_width / 2 - reset_caption.get_width() / 2, screen_height - 220),
+            )
             pygame.display.flip()
 
     def win_screen(self):
@@ -466,9 +520,11 @@ class Manager():
         while True:
             win_caption = menu_font.render("You have won!", 1, menu_color)
             level_caption = font.render(
-                "To continue to the next difficulty press Enter.", 1, menu_color)
+                "To continue to the next difficulty press Enter.", 1, menu_color
+            )
             menu_caption = font.render(
-                "To go back to the main menu press P ...", 1, menu_color)
+                "To go back to the main menu press P ...", 1, menu_color
+            )
 
             # Zpracování uživatelských vstupů
             for event in pygame.event.get():
@@ -484,27 +540,30 @@ class Manager():
                         player.diff += 1
                         if player.diff >= 3:
                             player.diff = 0
-                        diffs = {
-                            0: "easy",
-                            1: "medium",
-                            2: "hardcore"
-                        }
+                        diffs = {0: "easy", 1: "medium", 2: "hardcore"}
                         opponent.CD = player.difficulty[diffs[player.diff]][0]
                         player.reset()
                         opponent.reset()
                         self.main_menu()
-                        
 
                     if event.key == pygame.K_p:
                         self.main_menu()
+                    if event.key == pygame.K_q:
+                        pygame.quit()
+                        sys.exit()
 
             self.draw_background_menus()
-            screen.blit(win_caption, (screen_width/2 -
-                        win_caption.get_width()/2, 250))
-            screen.blit(level_caption, (screen_width/2 -
-                        level_caption.get_width()/2, screen_height/2))
-            screen.blit(menu_caption, (screen_width/2 -
-                        menu_caption.get_width()/2, screen_height - 220))
+            screen.blit(
+                win_caption, (screen_width / 2 - win_caption.get_width() / 2, 250)
+            )
+            screen.blit(
+                level_caption,
+                (screen_width / 2 - level_caption.get_width() / 2, screen_height / 2),
+            )
+            screen.blit(
+                menu_caption,
+                (screen_width / 2 - menu_caption.get_width() / 2, screen_height - 220),
+            )
             pygame.display.flip()
 
     def lose_screen(self):
@@ -512,10 +571,10 @@ class Manager():
         Lose screen se ukáže, pokud nepřítel zasáhne hráče.
         """
         while True:
-            lose_caption = menu_font.render(
-                "You have been killed ...", 1, menu_color)
+            lose_caption = menu_font.render("You have been killed ...", 1, menu_color)
             menu_caption = font.render(
-                "To go back to the main menu press P ...", 1, menu_color)
+                "To go back to the main menu press P ...", 1, menu_color
+            )
 
             # Zpracování uživatelských vstupů
             for event in pygame.event.get():
@@ -530,12 +589,18 @@ class Manager():
                         player.reset()
                         opponent.reset()
                         self.main_menu()
+                    if event.key == pygame.K_q:
+                        pygame.quit()
+                        sys.exit()
 
             self.draw_background_menus()
-            screen.blit(lose_caption, (screen_width/2 -
-                        lose_caption.get_width()/2, 250))
-            screen.blit(menu_caption, (screen_width/2 -
-                        menu_caption.get_width()/2, screen_height - 220))
+            screen.blit(
+                lose_caption, (screen_width / 2 - lose_caption.get_width() / 2, 250)
+            )
+            screen.blit(
+                menu_caption,
+                (screen_width / 2 - menu_caption.get_width() / 2, screen_height - 220),
+            )
             pygame.display.flip()
 
     def main_loop(self):
@@ -569,6 +634,10 @@ class Manager():
                         player_bullets.add(player.shoot())
                     if event.key == pygame.K_p:
                         self.pause_menu()
+                    if event.key == pygame.K_q:
+                        pygame.quit()
+                        sys.exit()
+
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_UP:
                         player.movement_y += player.speed
@@ -601,20 +670,24 @@ Nastavení herního okna
 screen_width = 1280
 screen_height = 960
 screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption('Přestřelka')
+pygame.display.set_caption("Přestřelka")
 
 
 """
 Nastavení proměnných pozadí a fontu.
 """
-bg_river = pygame.transform.scale(pygame.image.load(
-    os.path.join('assets', 'river_bg.png')), (screen_width, 500))
-bg_grass = pygame.transform.scale(pygame.image.load(
-    os.path.join('assets', 'grass_bg.png')), (screen_width, 230))
-bg_river_menu = pygame.transform.scale(pygame.image.load(
-    os.path.join('assets', 'river_bg_menu.png')), (screen_width, 500))
-bg_grass_menu = pygame.transform.scale(pygame.image.load(
-    os.path.join('assets', 'grass_bg_menu.png')), (screen_width, 230))
+bg_river = pygame.transform.scale(
+    pygame.image.load(os.path.join("assets", "river_bg.png")), (screen_width, 500)
+)
+bg_grass = pygame.transform.scale(
+    pygame.image.load(os.path.join("assets", "grass_bg.png")), (screen_width, 230)
+)
+bg_river_menu = pygame.transform.scale(
+    pygame.image.load(os.path.join("assets", "river_bg_menu.png")), (screen_width, 500)
+)
+bg_grass_menu = pygame.transform.scale(
+    pygame.image.load(os.path.join("assets", "grass_bg_menu.png")), (screen_width, 230)
+)
 
 font = pygame.font.SysFont("Campus", 40)
 menu_font = pygame.font.SysFont("Campus", 80)
@@ -625,8 +698,8 @@ menu_color = (0, 0, 0)
 Vytvoření objektů.
 """
 
-player = Player('player_char.png', screen_width/2 - 32, screen_height - 32, 4)
-opponent = Opponent('enemy_char.png', (screen_width/2) - 32, 32, 10)
+player = Player("player_char.png", screen_width / 2 - 32, screen_height - 32, 4)
+opponent = Opponent("enemy_char.png", (screen_width / 2) - 32, 32, 10)
 characters = pygame.sprite.Group()
 characters.add(player)
 characters.add(opponent)
