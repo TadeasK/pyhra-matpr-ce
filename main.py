@@ -159,24 +159,20 @@ class Opponent(Character):
         super().__init__(path, pos_x, pos_y)
         self.speed = speed
         self.cooldown_time = 0
+        self.super_time = 1
         self.CD = player.difficulty.get("easy")[0]
+        self.superCD = 60 * 15
 
     def update(self):
         """
         Metoda zajišťující pohyb a střelbu oponenta.
         """
-        if self.cooldown_time == 0:
-            if (
-                self.rect.centerx == player.rect.centerx
-                or abs(self.rect.centerx - player.rect.centerx) <= 64
-            ):
-                enemy_bullets.add(opponent.shoot())
-                self.cooldown_time = 1
-
+        self.attack()
         self.movement()
         self.constrain()
         self.is_hit(player_bullets)
         self.cooldown()
+        self.supercooldown()
 
     def movement(self):
         if bool(player_bullets):
@@ -194,6 +190,16 @@ class Opponent(Character):
         else:
             self.dodge_player()
 
+    def supercooldown(self):
+        """
+        Metoda, určující cooldown nepřítelovi 
+        speciální schopnosti.
+        """
+        if self.super_time >= self.superCD:
+            self.super_time = 0
+        elif self.super_time > 0:
+            self.super_time += 1
+
     def cooldown(self):
         """
         Metoda, která časově omezuje oponentovu střelbu, 
@@ -204,6 +210,12 @@ class Opponent(Character):
         elif self.cooldown_time > 0:
             self.cooldown_time += 1
 
+    def super_shoot(self):
+        """
+        Metoda vytvářející nepřítelovu speciální schopnost.
+        """
+        return Bullet("enemy_bullet.png", [i for i in range(1, 1281, 80 )], 0, characters)
+
     def shoot(self):
         """
         Metoda shoot vytvoří projektily, pokud
@@ -212,6 +224,19 @@ class Opponent(Character):
         return Bullet(
             "enemy_bullet.png", self.rect.centerx, self.rect.centery, characters
         )
+
+    def attack(self):
+        if self.cooldown_time == 0:
+            if (
+                self.rect.centerx == player.rect.centerx
+                or abs(self.rect.centerx - player.rect.centerx) <= 64
+            ):
+                enemy_bullets.add(self.shoot())
+                self.cooldown_time = 1
+
+        if self.super_time == 0:
+            enemy_bullets.add(self.super_shoot())
+            self.super_time = 1
 
     def is_hit(self, enemy_bullets):
         """
