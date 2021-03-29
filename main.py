@@ -16,11 +16,11 @@ class Character(pygame.sprite.Sprite):
     def __init__(self, path, pos_x, pos_y):
         """
         Funkce načte cestu, pozici x a pozici y,
-        které budou využívat dceřinné třídy.
-        path poslouží pro nalezení cesty ke grafice objektu.
-        pos_x, pos_y budou určovat pozici objektu.
-        image a rect jsoou povinné vlastnosti Pygame spritů.
-        Využívám vestavěnou funkci super(), která usnadňuje víceúrovňovou dědičnost.
+        které budou využívat dceřiné třídy
+        path poslouží pro nalezení cesty ke grafice objektu
+        pos_x, pos_y budou určovat pozici objektu
+        image a rect jsou povinné vlastnosti Pygame spritů
+        Využívám vestavěnou funkci super(), která usnadňuje víceúrovňovou dědičnost
         """
         super().__init__()
         self.pos_x = pos_x
@@ -34,7 +34,7 @@ class Character(pygame.sprite.Sprite):
     def reset(self):
         """
         Metoda reset vrátí hráče a nepřítele na startovní pozici,
-        zároveň resetne hráčův pohyb, kdyby při smrti/výhře
+        zároveň resetuje hráčův pohyb, kdyby při smrti/výhře
         stále držel tlačítko pro pohyb.
         """
         self.rect.centerx = self.pos_x
@@ -102,9 +102,9 @@ class Player(Character):
         """
         Metoda is_hit kontroluje kolize hráče a nepřátelských projektilů.
         Využívá jednoduchou pygame builtin metodu sprite.spritecollide,
-        která vrací seznam objektů, jejihž rect se střetli s rect hráče.
+        která vrací seznam objektů, jejichž rect se střetly s rect hráče.
         Poté z tohoto listu vybere ty, u kterých vskutku došlo ke kolizi,
-        na úrovni pixelů, pomocí metody collide_mask.
+        na úrovni pixelů pomocí metody collide_mask.
         """
         if pygame.sprite.spritecollide(self, enemy_bullets, False):
             hits = pygame.sprite.spritecollide(self, enemy_bullets, False)
@@ -122,7 +122,7 @@ class Bullet(Character):
     def __init__(self, path, pos_x, pos_y, characters):
         """
         Díky funkci super() dědí vlastnosti path a pos_x, y z třídy Character
-        Dále dostává vlastnost characters, která nám poslouží kvůli kolizím 
+        Dále dostává vlastnost characters, která nám poslouží k testování kolizí 
         s hráčovým a počítačovým charakterem.
         """
         super().__init__(path, pos_x, pos_y)
@@ -195,7 +195,7 @@ class Opponent(Character):
 
     def supercooldown(self):
         """
-        Metoda, určující cooldown nepřítelovi 
+        Metoda určující cooldown nepřítelovy
         speciální schopnosti.
         """
         if self.super_time >= self.superCD:
@@ -250,9 +250,9 @@ class Opponent(Character):
         """
         Metoda is_hit kontroluje kolize hráče a nepřátelských projektilů.
         Využívá jednoduchou pygame builtin metodu sprite.spritecollide,
-        která vrací seznam objektů, jejihž rect se střetli s rect hráče.
+        která vrací seznam objektů, jejichž rect se střetly s rect hráče.
         Poté z tohoto listu vybere ty, u kterých vskutku došlo ke kolizi,
-        na úrovni pixelů, pomocí metody collide_mask.
+        na úrovni pixelů pomocí metody collide_mask.
         Nakonec také přičte hráči skóre.
         """
         if pygame.sprite.spritecollide(self, player_bullets, False):
@@ -288,7 +288,7 @@ class Opponent(Character):
 
     def dodge(self, direction):
         """
-        Metoda, určijící kam oponent uhybá.
+        Metoda určující, kam oponent uhýbá.
         """
         if direction == "left":
             self.rect.centerx -= self.speed
@@ -306,7 +306,7 @@ class Manager:
 
     def __init__(self, characters, player_bullets, enemy_bullets):
         """
-        Bere si skupinu spritů, ve které jsou charaktery a kulky, jako argumenty.
+        Bere si skupinu spritů, ve které jsou charaktery a kulky jako argumenty.
         """
         self.characters = characters
         self.player_bullets = player_bullets
@@ -517,8 +517,8 @@ class Manager:
 
     def pause_menu(self):
         """
-        Metoda pause menu se ukáže když hráč pozastaví hru.
-        Může pokračovat zpět do hry nebo do main menu, čímž hru resetne.
+        Metoda pause menu se ukáže, když hráč pozastaví hru.
+        Může pokračovat zpět do hry nebo do main menu, čímž hru resetuje.
         """
 
         # Loop pro menu pause
@@ -568,7 +568,7 @@ class Manager:
 
     def win_screen(self):
         """
-        Win screen se ukáže pokud hráč vyhraje level.
+        Win screen se ukáže, pokud hráč vyhraje level.
         Může se z ní vrátit do main menu a pokračovat dalším levelem.
         """
         # Loop pro win obrazovku
