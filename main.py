@@ -63,7 +63,7 @@ class Player(Character):
         self.difficulty = {
             "easy": [45, 100, 15],
             "medium": [30, 50, 10],
-            "hardcore": [0, 0, 4],
+            "hardcore": [0, 0, 2],
         }
         self.diff = 0
 
@@ -175,6 +175,9 @@ class Opponent(Character):
         self.supercooldown()
 
     def movement(self):
+        """
+        Metoda nastavující algoritmus pohybu oponenta.
+        """
         if bool(player_bullets):
             for bullet in player_bullets:
                 if (bullet.rect.centerx - self.rect.centerx) ** 2 + (
@@ -227,6 +230,10 @@ class Opponent(Character):
         )
 
     def attack(self):
+        """
+        Metoda, podle které oponent na základě cooldownů
+        a pozice hráče útočí.
+        """
         if self.cooldown_time == 0:
             if (
                 self.rect.centerx == player.rect.centerx
@@ -268,6 +275,9 @@ class Opponent(Character):
             self.rect.right = screen_width
 
     def dodge_player(self):
+        """
+        Metoda, podle které oponent následuje pohyb hráče.
+        """
         if self.rect.centerx not in range(
             player.rect.centerx - 5, player.rect.centerx + 6
         ):
@@ -277,6 +287,9 @@ class Opponent(Character):
                 self.dodge("left")
 
     def dodge(self, direction):
+        """
+        Metoda, určijící kam oponent uhybá.
+        """
         if direction == "left":
             self.rect.centerx -= self.speed
         if direction == "right":
@@ -284,12 +297,11 @@ class Opponent(Character):
 
 
 class Manager:
-    score = 0
-    running = True
-
     """
     Třída Manager dává všechno dohromady a stará se o fungování hry jako celku.
     """
+    score = 0
+    running = True
 
     def __init__(self, characters, player_bullets, enemy_bullets):
         """
@@ -343,6 +355,8 @@ class Manager:
 
         screen.blit(score_render, (screen_width - score_render.get_width() - 30, 30))
 
+        # Nastavuje skóre potřebné pro výhru
+        # a při jeho dosažení aktivuje metodu win_screen.
         if final_score >= 30000:
             self.win_screen()
 
@@ -367,11 +381,17 @@ class Manager:
         screen.blit(diff_render, (screen_width - diff_render.get_width() - 30, 90))
 
     def draw_background(self):
+        """
+        Dává dohromady pozadí pro snadnější vykreslování herního pozadí.
+        """
         screen.blit(bg_river, (0, 230))
         screen.blit(bg_grass, (0, 0))
         screen.blit(bg_grass, (0, 730))
 
     def draw_background_menus(self):
+        """
+        Dává dohromady pozadí pro snadnější vykreslování pozadí menu.
+        """
         screen.blit(bg_river_menu, (0, 230))
         screen.blit(bg_grass_menu, (0, 0))
         screen.blit(bg_grass_menu, (0, 730))
@@ -387,6 +407,7 @@ class Manager:
             self.enemy_bullets.empty()
             self.player_bullets.empty()
 
+        # Loop pro hlavní menu
         while True:
             menu_caption = menu_font.render("Main Menu", 1, menu_color)
             run_caption = font.render(
@@ -414,7 +435,8 @@ class Manager:
                     if event.key == pygame.K_q:
                         pygame.quit()
                         sys.exit()
-
+            ¨
+            # Vykresluje obsah menu
             self.draw_background_menus()
             screen.blit(
                 menu_caption, (screen_width / 2 - menu_caption.get_width() / 2, 250)
@@ -438,6 +460,7 @@ class Manager:
         Dá se z ní dostat zpět do main menu.
         """
 
+        # Loop pro menu controls
         while True:
             controls_caption = menu_font.render("Controls", 1, menu_color)
             menu_caption = font.render(
@@ -469,6 +492,7 @@ class Manager:
                         pygame.quit()
                         sys.exit()
 
+            # Vykresluje obsah controls
             self.draw_background_menus()
             screen.blit(
                 controls_caption,
@@ -496,6 +520,7 @@ class Manager:
         Může pokračovat zpět do hry nebo do main menu, čímž hru resetne.
         """
 
+        # Loop pro menu pause
         while True:
             pause_caption = menu_font.render("Game Paused", 1, menu_color)
             run_caption = font.render(
@@ -525,6 +550,7 @@ class Manager:
                         pygame.quit()
                         sys.exit()
 
+            # Vykresluje obsah pause
             self.draw_background_menus()
             screen.blit(
                 pause_caption, (screen_width / 2 - pause_caption.get_width() / 2, 250)
@@ -544,7 +570,7 @@ class Manager:
         Win screen se ukáže pokud hráč vyhraje level.
         Může se z ní vrátit do main menu a pokračovat dalším levelem.
         """
-
+        # Loop pro win obrazovku
         while True:
             win_caption = menu_font.render("You have won!", 1, menu_color)
             level_caption = font.render(
@@ -583,6 +609,7 @@ class Manager:
                         pygame.quit()
                         sys.exit()
 
+            # Vykresluje obsah win screen
             self.draw_background_menus()
             screen.blit(
                 win_caption, (screen_width / 2 - win_caption.get_width() / 2, 250)
@@ -601,6 +628,8 @@ class Manager:
         """
         Lose screen se ukáže, pokud nepřítel zasáhne hráče.
         """
+
+        # Loop pro lose screen
         while True:
             lose_caption = menu_font.render("You have been killed ...", 1, menu_color)
             menu_caption = font.render(
@@ -624,6 +653,7 @@ class Manager:
                         pygame.quit()
                         sys.exit()
 
+            # Vykresluje obsah lose screen
             self.draw_background_menus()
             screen.blit(
                 lose_caption, (screen_width / 2 - lose_caption.get_width() / 2, 250)
@@ -635,12 +665,14 @@ class Manager:
             pygame.display.flip()
 
     def main_loop(self):
+        """
+        Hlavní loop, díky kterému hra poběží.
+        """
         self.elapsed_time = 0
 
+        # Herní loop
         while self.running:
-            """
-            Hlavní loop, díky kterému hra poběží.
-            """
+           
             # Počítá čas od začátku hry
             self.elapsed_time = time.time() - self.start_time
 
