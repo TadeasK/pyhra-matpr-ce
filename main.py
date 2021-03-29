@@ -61,9 +61,9 @@ class Player(Character):
         self.movement_y = 0
         # Proměnná a slovník pro obtížnost
         self.difficulty = {
-            "easy": [45, 100],
-            "medium": [30, 50],
-            "hardcore": [0, 0],
+            "easy": [45, 100, 15],
+            "medium": [30, 50, 10],
+            "hardcore": [0, 0, 4],
         }
         self.diff = 0
 
@@ -161,7 +161,7 @@ class Opponent(Character):
         self.cooldown_time = 0
         self.super_time = 1
         self.CD = player.difficulty.get("easy")[0]
-        self.superCD = 60 * 15
+        self.superCD = 60 * player.difficulty.get("easy")[2]
 
     def update(self):
         """
@@ -214,7 +214,8 @@ class Opponent(Character):
         """
         Metoda vytvářející nepřítelovu speciální schopnost.
         """
-        return Bullet("enemy_bullet.png", [i for i in range(1, 1281, 80 )], 0, characters)
+        for i in range(1, 1281, 80):
+            yield Bullet("enemy_bullet.png", i, 0, characters)
 
     def shoot(self):
         """
@@ -342,7 +343,7 @@ class Manager:
 
         screen.blit(score_render, (screen_width - score_render.get_width() - 30, 30))
 
-        if final_score >= 50000:
+        if final_score >= 30000:
             self.win_screen()
 
     def draw_time(self):
@@ -405,6 +406,7 @@ class Manager:
                 # Převádí uživatelský vstup na akce v menu
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
+                        self.start_time = time.time()
                         self.running = True
                         self.main_loop()
                     if event.key == pygame.K_c:
@@ -448,7 +450,9 @@ class Manager:
                 "To shoot at the enemy use your spacebar.", 1, menu_color
             )
             quit_caption = font.render(
-                "You can end the game at any time by pressing the Q key.", 1, menu_color
+                "You can quit the game at any time by pressing the Q key.",
+                1,
+                menu_color,
             )
             # Zpracování uživatelských vstupů
             for event in pygame.event.get():
@@ -461,7 +465,6 @@ class Manager:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_p:
                         self.main_menu()
-                        run = False
                     if event.key == pygame.K_q:
                         pygame.quit()
                         sys.exit()
@@ -567,6 +570,9 @@ class Manager:
                             player.diff = 0
                         diffs = {0: "easy", 1: "medium", 2: "hardcore"}
                         opponent.CD = player.difficulty[diffs[player.diff]][0]
+                        opponent.superCD = (
+                            60 * player.difficulty.get(diffs[player.diff])[2]
+                        )
                         player.reset()
                         opponent.reset()
                         self.main_menu()
