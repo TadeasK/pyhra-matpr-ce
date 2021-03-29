@@ -215,7 +215,7 @@ class Opponent(Character):
 
     def super_shoot(self):
         """
-        Metoda vytvářející nepřítelovu speciální schopnost.
+        Metoda vytvářející nepřítelovu speciální schopnost (útok).
         """
         for i in range(1, 1281, 80):
             yield Bullet("enemy_bullet.png", i, 0, characters)
@@ -300,6 +300,7 @@ class Manager:
     """
     Třída Manager dává všechno dohromady a stará se o fungování hry jako celku.
     """
+
     score = 0
     running = True
 
@@ -435,7 +436,7 @@ class Manager:
                     if event.key == pygame.K_q:
                         pygame.quit()
                         sys.exit()
-            
+
             # Vykresluje obsah menu
             self.draw_background_menus()
             screen.blit(
@@ -672,7 +673,7 @@ class Manager:
 
         # Herní loop
         while self.running:
-           
+
             # Počítá čas od začátku hry
             self.elapsed_time = time.time() - self.start_time
 
